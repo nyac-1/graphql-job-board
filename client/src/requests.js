@@ -1,49 +1,75 @@
 const endpointURL = "http://localhost:9000/testing-gql";
 
-export async function loadJobs() {
+async function graphqlRequest(query, variables = {}) {
     const response = await fetch(endpointURL,{
         method: 'POST',
         headers: {'content-type':'application/json'},
         body: JSON.stringify({
-            query: 
-            `{
-                jobs{
-                  id
-                  title
-                  description
-                  company{
-                    id
-                    name
-                  }
-                }
-              }`
+            query,
+            variables
         })
     });
 
     const responseBody = await response.json();
-    return responseBody.data.jobs;
+    if(responseBody.errors){
+        const message = response.errors.map((error)=>error.message).join('\n');
+        throw new Error('GraphQL Error\n'+message);
+    }
+    return responseBody.data;
+}
+
+
+export async function loadJobs() {
+    const query=`query GetAllJobsQuery{
+            jobs{
+                id
+                title
+                description
+                company{
+                    id
+                    name
+                }
+            }
+        }`
+
+    const data = await graphqlRequest(query);
+    return data.jobs;
 }
 
 
 export async function loadJob(id) {
-    const response = await fetch(endpointURL, {
-      method: 'POST',
-      headers: {'content-type': 'application/json'},
-      body: JSON.stringify({
-        query: `query JobQuery($id: ID!) {
-          job(id: $id) {
+    const query = `query JobQuery($id: ID!) {
+        job(id: $id) {
+          id
+          title
+          company {
             id
-            title
-            company {
-              id
-              name
-            }
-            description
+            name
           }
-        }`,
-        variables: {id}
-      })
-    });
-    const responseBody = await response.json();
-    return responseBody.data.job;
-  }
+          description
+        }
+      }`
+    const variables = {id};
+
+    const data = await graphqlRequest(query, variables);
+    return data.job;
+}
+
+export async function loadCompany(id) {
+    const query = `query GetCompanyQuery($id: ID!){
+        company(id: $id){
+            id
+            name
+            description
+            jobs{
+                id
+                title
+                description
+            }
+        }
+      }`
+    const variables = {id};
+
+    const data = await graphqlRequest(query, variables);
+    return data.company;
+}
