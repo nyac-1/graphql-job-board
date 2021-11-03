@@ -1,7 +1,8 @@
 const db = require('./db.js');
 
 const Query = {
-    jobs: () => (db.jobs.list())
+    jobs: () => (db.jobs.list()),
+    job: (root, {id})=>(db.jobs.get(id)),
 }
 
 const Job = {
